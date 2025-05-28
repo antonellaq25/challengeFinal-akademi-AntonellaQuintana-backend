@@ -6,6 +6,7 @@ const {
   createCourse,
   updateCourse,
   deleteCourse,
+  getMyCourses
 } = require("../controllers/course-controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -14,6 +15,7 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 router.use(authMiddleware);
 
 router.get("/", roleMiddleware(["student", "superadmin"]), getCourses);
+router.get("/my-courses", roleMiddleware(["teacher"]), getMyCourses);
 router.get("/:id", getCourseById);
 router.post("/", roleMiddleware(["teacher"]), createCourse);
 router.put("/:id", roleMiddleware(["teacher", "superadmin"]), updateCourse);

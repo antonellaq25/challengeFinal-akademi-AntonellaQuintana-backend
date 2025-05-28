@@ -1,6 +1,5 @@
 const Course = require("../models/Course");
 
-
 exports.getCourses = async (req, res) => {
   try {
     const { page = 1, limit = 10, category, active, title } = req.query;
@@ -10,7 +9,6 @@ exports.getCourses = async (req, res) => {
     if (active !== undefined) filter.active = active === "true";
     if (title) filter.title = { $regex: title, $options: "i" };
 
-
     const total = await Course.countDocuments(filter);
     const courses = await Course.find(filter)
       .skip((page - 1) * limit)
@@ -19,7 +17,9 @@ exports.getCourses = async (req, res) => {
 
     res.json({ total, page: Number(page), courses });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching courses", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching courses", error: err.message });
   }
 };
 
@@ -29,7 +29,22 @@ exports.getCourseById = async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json(course);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching course", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching course", error: err.message });
+  }
+};
+exports.getMyCourses = async (req, res) => {
+  try {
+    const teacherId = req.user.id; 
+    const myCourses = await Course.find({ teacherId });
+
+    res.status(200).json(myCourses);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching your courses",
+      error: error.message,
+    });
   }
 };
 
@@ -42,13 +57,15 @@ exports.createCourse = async (req, res) => {
       category,
       price,
       maxStudents,
-      teacherId: req.user.id, 
+      teacherId: req.user.id,
     });
 
     await course.save();
     res.status(201).json(course);
   } catch (err) {
-    res.status(400).json({ message: "Error creating course", error: err.message });
+    res
+      .status(400)
+      .json({ message: "Error creating course", error: err.message });
   }
 };
 
@@ -61,10 +78,13 @@ exports.updateCourse = async (req, res) => {
       course.teacherId.toString() !== req.user._id.toString() &&
       req.user.role !== "superadmin"
     ) {
-      return res.status(403).json({ message: "Not authorized to modify this course" });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to modify this course" });
     }
 
-    const { title, description, category, price, maxStudents, active } = req.body;
+    const { title, description, category, price, maxStudents, active } =
+      req.body;
 
     if (title) course.title = title;
     if (description) course.description = description;
@@ -76,7 +96,9 @@ exports.updateCourse = async (req, res) => {
     await course.save();
     res.json({ message: "Course updated", course });
   } catch (err) {
-    res.status(500).json({ message: "Error updating course", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error updating course", error: err.message });
   }
 };
 
@@ -85,15 +107,11 @@ exports.deleteCourse = async (req, res) => {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    if (
-      course.teacherId.toString() !== req.user._id.toString() &&
-      req.user.role !== "superadmin"
-    ) {
-      return res.status(403).json({ message: "Not authorized to modify this course" });
-    }
-    await course.remove();
+    await course.deleteOne();
     res.json({ message: "Course deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting course", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting course", error: err.message });
   }
 };
