@@ -1,14 +1,16 @@
 const bcrypt = require("bcryptjs");
-const User = require("../models/User")
+const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   const { name, email, password, role } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      const error = new Error("User already exists");
+      error.status = 400;
+      throw error;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -17,34 +19,39 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role
+      role,
     });
 
     res.status(201).json({
-      message: "user successfully created",
+      message: "User successfully created",
       user: {
         id: newUser._id,
         name: newUser.name,
         role: newUser.role,
-      }
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error in server" });
+    next(error); 
   }
 };
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
+
     if (!user || !user.active) {
-      return res.status(401).json({ message: "invalid credentials" });
+      const error = new Error("Invalid credentials");
+      error.status = 401;
+      throw error;
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ message: "invalid credentials" });
+      const error = new Error("Invalid credentials");
+      error.status = 401;
+      throw error;
     }
 
     const token = generateToken(user._id, user.role);
@@ -54,10 +61,10 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error in server" });
+    next(error); 
   }
 };

@@ -8,7 +8,7 @@ exports.createGrade = async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    if (course.professorId.toString() !== req.user._id.toString()) {
+    if (course.teacherId.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: "Not authorized to grade this course" });
     }
 
@@ -21,10 +21,29 @@ exports.createGrade = async (req, res) => {
 
 exports.getGradesByStudent = async (req, res) => {
   try {
-    const grades = await Grade.find({ studentId: req.user._id }).populate("courseId", "title category");
+    const grades = await Grade.find({ studentId: req.user.id }).populate("courseId", "title category");
     res.json(grades);
   } catch (err) {
     res.status(500).json({ message: "Error fetching student grades", error: err.message });
+  }
+};
+
+exports.getGradesByStudentId = async (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+    const teacherId = req.user.id;
+
+    const courses = await Course.find({ teacherId: teacherId }).select("id");
+    const courseIds = courses.map(course => course.id);
+
+    const grades = await Grade.find({
+      studentId: studentId,
+      courseId: { $in: courseIds },
+    }).populate("courseId", "title category");
+
+    res.json(grades);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching grades for student", error: err.message });
   }
 };
 
@@ -35,7 +54,7 @@ exports.getGradesByCourse = async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    if (course.professorId.toString() !== req.user._id.toString()) {
+    if (course.teacherId.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: "Not authorized to view grades for this course" });
     }
 
@@ -54,7 +73,7 @@ exports.updateGrade = async (req, res) => {
     const grade = await Grade.findById(id).populate("courseId");
     if (!grade) return res.status(404).json({ message: "Grade not found" });
 
-    if (grade.courseId.professorId.toString() !== req.user._id.toString()) {
+    if (grade.courseId.teacherId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized to update this grade" });
     }
 
@@ -76,7 +95,7 @@ exports.deleteGrade = async (req, res) => {
 
     if (!grade) return res.status(404).json({ message: "Grade not found" });
 
-    const isOwner = grade.courseId.professorId.toString() === req.user._id.toString();
+    const isOwner = grade.courseId.teacherId.toString() === req.user._id.toString();
     const isSuperadmin = req.user.role === "superadmin";
 
     if (!isOwner && !isSuperadmin) {

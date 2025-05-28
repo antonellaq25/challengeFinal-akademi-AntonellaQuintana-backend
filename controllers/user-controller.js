@@ -64,7 +64,7 @@ exports.requestPasswordReset = async (req, res) => {
     res.json({ message: "Email sent" });
   } catch (error) {
     console.error("Password reset error:", error);
-    res.status(500).json({ message: "Error sending the email" });
+    res.status(500).json({ message: error.message });
   }
 };
 exports.resetPassword = async (req, res) => {

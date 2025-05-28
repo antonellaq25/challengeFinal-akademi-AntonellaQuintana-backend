@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createGrade,
   getGradesByStudent,
+  getGradesByStudentId,
   getGradesByCourse,
   updateGrade,
   deleteGrade,
@@ -13,10 +14,11 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 
 router.use(authMiddleware);
 
-router.post("/", roleMiddleware(["profesor"]), createGrade);
-router.get("/student", roleMiddleware(["alumno"]), getGradesByStudent);
-router.get("/course/:courseId", roleMiddleware(["profesor"]), getGradesByCourse);
-router.put("/:id", roleMiddleware(["profesor"]), updateGrade);
-router.delete("/:id", roleMiddleware(["profesor", "superadmin"]), deleteGrade);
+router.post("/", roleMiddleware(["teacher"]), createGrade);
+router.get("/student", roleMiddleware(["student"]), getGradesByStudent);
+router.get("/student/:studentId", roleMiddleware(["teacher"]), getGradesByStudentId);
+router.get("/course/:courseId", roleMiddleware(["teacher"]), getGradesByCourse);
+router.put("/:id", roleMiddleware(["teacher"]), updateGrade);
+router.delete("/:id", roleMiddleware(["teacher", "superadmin"]), deleteGrade);
 
 module.exports = router;

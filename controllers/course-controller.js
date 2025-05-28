@@ -1,6 +1,6 @@
 const Course = require("../models/Course");
 
-exports.getCourses = async (req, res) => {
+exports.getCourses = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, category, active, title } = req.query;
     const filter = {};
@@ -17,38 +17,35 @@ exports.getCourses = async (req, res) => {
 
     res.json({ total, page: Number(page), courses });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching courses", error: err.message });
+    next(err);
   }
 };
 
-exports.getCourseById = async (req, res) => {
+exports.getCourseById = async (req, res, next) => {
   try {
     const course = await Course.findById(req.params.id);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) {
+      const error = new Error("Course not found");
+      error.status = 404;
+      throw error;
+    }
     res.json(course);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching course", error: err.message });
+    next(err);
   }
 };
-exports.getMyCourses = async (req, res) => {
-  try {
-    const teacherId = req.user.id; 
-    const myCourses = await Course.find({ teacherId });
 
+exports.getMyCourses = async (req, res, next) => {
+  try {
+    const teacherId = req.user.id;
+    const myCourses = await Course.find({ teacherId });
     res.status(200).json(myCourses);
   } catch (error) {
-    res.status(500).json({
-      message: "Error fetching your courses",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-exports.createCourse = async (req, res) => {
+exports.createCourse = async (req, res, next) => {
   const { title, description, category, price, maxStudents } = req.body;
   try {
     const course = new Course({
@@ -63,28 +60,30 @@ exports.createCourse = async (req, res) => {
     await course.save();
     res.status(201).json(course);
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: "Error creating course", error: err.message });
+    err.status = 400;
+    next(err);
   }
 };
 
-exports.updateCourse = async (req, res) => {
+exports.updateCourse = async (req, res, next) => {
   try {
     const course = await Course.findById(req.params.id);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) {
+      const error = new Error("Course not found");
+      error.status = 404;
+      throw error;
+    }
 
     if (
       course.teacherId.toString() !== req.user._id.toString() &&
       req.user.role !== "superadmin"
     ) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to modify this course" });
+      const error = new Error("Not authorized to modify this course");
+      error.status = 403;
+      throw error;
     }
 
-    const { title, description, category, price, maxStudents, active } =
-      req.body;
+    const { title, description, category, price, maxStudents, active } = req.body;
 
     if (title) course.title = title;
     if (description) course.description = description;
@@ -96,22 +95,22 @@ exports.updateCourse = async (req, res) => {
     await course.save();
     res.json({ message: "Course updated", course });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error updating course", error: err.message });
+    next(err);
   }
 };
 
-exports.deleteCourse = async (req, res) => {
+exports.deleteCourse = async (req, res, next) => {
   try {
     const course = await Course.findById(req.params.id);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) {
+      const error = new Error("Course not found");
+      error.status = 404;
+      throw error;
+    }
 
     await course.deleteOne();
     res.json({ message: "Course deleted" });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error deleting course", error: err.message });
+    next(err);
   }
 };

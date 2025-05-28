@@ -19,6 +19,15 @@ app.use("/courses", courseRoutes);
 app.use("/enrollments", enrollmentRoutes);
 app.use("/grades", gradeRoutes);
 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  const status = err.status || 500;
+  res.status(status).json({
+    message: err.message || "Internal Server Error",
+    error: err.stack,
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
