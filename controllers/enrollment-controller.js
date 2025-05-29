@@ -1,7 +1,7 @@
 const Enrollment = require("../models/Enrollment");
 const Course = require("../models/Course");
 
-exports.getEnrollmentsByStudent = async (req, res) => {
+exports.getEnrollmentsByStudent = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const page = parseInt(req.query.page) || 1;
@@ -21,30 +21,30 @@ exports.getEnrollmentsByStudent = async (req, res) => {
       enrollments,
     });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching enrollments", error: err.message });
+    next({ statusCode: 500, message: "Error fetching enrollments", ...err });
   }
 };
 
-exports.createEnrollment = async (req, res) => {
+exports.createEnrollment = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const { courseId } = req.body;
 
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
-  
+    if (!course) throw { statusCode: 404, message: "Course not found" };
+
     if (course.teacherId.toString() === studentId) {
-      return res.status(403).json({ message: "Teachers cannot enroll in their own courses" });
+      throw { statusCode: 403, message: "Teachers cannot enroll in their own courses" };
     }
 
     const alreadyEnrolled = await Enrollment.findOne({ studentId, courseId });
     if (alreadyEnrolled) {
-      return res.status(400).json({ message: "Already enrolled in this course" });
+      throw { statusCode: 400, message: "Already enrolled in this course" };
     }
 
     const enrollmentCount = await Enrollment.countDocuments({ courseId });
     if (enrollmentCount >= course.maxStudents) {
-      return res.status(400).json({ message: "Course is full" });
+      throw { statusCode: 400, message: "Course is full" };
     }
 
     const enrollment = new Enrollment({ studentId, courseId });
@@ -52,27 +52,26 @@ exports.createEnrollment = async (req, res) => {
 
     res.status(201).json(enrollment);
   } catch (err) {
-    res.status(500).json({ message: "Error creating enrollment", error: err.message });
+    next({ statusCode: err.statusCode || 500, message: err.message || "Error creating enrollment" });
   }
 };
 
-exports.deleteEnrollment = async (req, res) => {
+exports.deleteEnrollment = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const enrollmentId = req.params.id;
 
     const enrollment = await Enrollment.findOne({ _id: enrollmentId, studentId });
-    if (!enrollment) return res.status(404).json({ message: "Enrollment not found or access denied" });
+    if (!enrollment) throw { statusCode: 404, message: "Enrollment not found or access denied" };
 
     await enrollment.deleteOne();
-
     res.json({ message: "Enrollment cancelled" });
   } catch (err) {
-    res.status(500).json({ message: "Error cancelling enrollment", error: err.message });
+    next({ statusCode: 500, message: "Error cancelling enrollment", ...err });
   }
 };
 
-exports.getEnrollmentsByCourse = async (req, res) => {
+exports.getEnrollmentsByCourse = async (req, res, next) => {
   try {
     const professorId = req.user.id;
     const courseId = req.params.courseId;
@@ -81,7 +80,7 @@ exports.getEnrollmentsByCourse = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const course = await Course.findOne({ _id: courseId, teacherId: professorId });
-    if (!course) return res.status(403).json({ message: "Access denied or course not found" });
+    if (!course) throw { statusCode: 403, message: "Access denied or course not found" };
 
     const total = await Enrollment.countDocuments({ courseId });
     const enrollments = await Enrollment.find({ courseId })
@@ -96,6 +95,6 @@ exports.getEnrollmentsByCourse = async (req, res) => {
       enrollments,
     });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching enrollments", error: err.message });
+    next({ statusCode: 500, message: "Error fetching enrollments", ...err });
   }
 };

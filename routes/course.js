@@ -1,24 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const {
-  getCourses,
-  getCourseById,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  getMyCourses
-} = require("../controllers/course-controller");
+const courseController = require("../controllers/course-controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 
 router.use(authMiddleware);
 
-router.get("/", roleMiddleware(["student", "superadmin"]), getCourses);
-router.get("/my-courses", roleMiddleware(["teacher"]), getMyCourses);
-router.get("/:id", getCourseById);
-router.post("/", roleMiddleware(["teacher"]), createCourse);
-router.put("/:id", roleMiddleware(["teacher", "superadmin"]), updateCourse);
-router.delete("/:id", roleMiddleware(["teacher", "superadmin"]), deleteCourse);
+router.get("/", roleMiddleware(["student", "superadmin"]), courseController.getCourses);
+router.get("/filter", roleMiddleware(["student", "superadmin"]),courseController.getCoursesByFilter);
+router.get("/my-courses", roleMiddleware(["teacher"]), courseController.getMyCourses);
+router.get("/:id", courseController.getCourseById);
+router.post("/", roleMiddleware(["teacher"]), courseController.createCourse);
+router.put("/:id", roleMiddleware(["teacher", "superadmin"]), courseController.updateCourse);
+router.delete("/:id", roleMiddleware(["teacher", "superadmin"]), courseController.deleteCourse);
 
 module.exports = router;

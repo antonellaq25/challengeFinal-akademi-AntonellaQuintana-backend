@@ -2,6 +2,27 @@ const Course = require("../models/Course");
 
 exports.getCourses = async (req, res, next) => {
   try {
+    const { page = 1, limit = 5 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const total = await Course.countDocuments({});
+    const courses = await Course.find({})
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      results: courses,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching courses", error: err.message });
+  }
+};
+exports.getCoursesByFilter = async (req, res, next) => {
+  try {
     const { page = 1, limit = 10, category, active, title } = req.query;
     const filter = {};
 

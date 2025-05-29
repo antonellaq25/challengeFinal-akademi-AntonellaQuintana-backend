@@ -3,32 +3,75 @@ const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
 
-
-exports.getUsers = async (req, res) => {
+exports.getUsers = async (req, res, next) => {
   try {
-    const users = await User.find({}, "-password"); 
-    res.json(users);
+    const { page = 1, limit = 5 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const total = await User.countDocuments({});
+    const users = await User.find({}).skip(skip).limit(parseInt(limit));
+
+    if (!users) {
+      throw { status: 404, message: "Users not found" };
+    }
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      results: users,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error getting users" });
+    next(error);
   }
 };
 
-exports.getUserById = async (req, res) => {
+exports.getUsersByFilter = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, name, email, role } = req.query;
+
+    const filter = {};
+    if (name) filter.name = { $regex: name, $options: "i" };
+    if (email) filter.email = { $regex: email, $options: "i" };
+    if (role) filter.role = role;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await User.countDocuments(filter);
+    const users = await User.find(filter, "-password")
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    if (!users) {
+      throw { status: 404, message: "Users not found" };
+    }
+
+    res.json({
+      users,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalUsers: total,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw { status: 404, message: "User not found" };
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: "Error searching user" });
+    next(error);
   }
 };
 
-exports.updateUser = async (req, res) => {
+exports.updateUser = async (req, res, next) => {
   const { name, email, role, password } = req.body;
 
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw { status: 404, message: "User not found" };
 
     user.name = name || user.name;
     user.email = email || user.email;
@@ -41,16 +84,16 @@ exports.updateUser = async (req, res) => {
     await user.save();
     res.json({ message: "User successfully updated" });
   } catch (error) {
-    res.status(500).json({ message: "Error updating user" });
+    next(error);
   }
 };
 
-exports.requestPasswordReset = async (req, res) => {
+exports.requestPasswordReset = async (req, res, next) => {
   const { email } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw { status: 404, message: "User not found" };
 
     const token = generateToken(user._id, user.role);
 
@@ -59,15 +102,19 @@ exports.requestPasswordReset = async (req, res) => {
     await user.save();
 
     const link = `http://localhost:5173/reset-password/${token}`;
-    await sendEmail(email, "Reset password", `Token to reset password: ${link}`);
+    await sendEmail(
+      email,
+      "Reset password",
+      `Token to reset password: ${link}`
+    );
 
     res.json({ message: "Email sent" });
   } catch (error) {
-    console.error("Password reset error:", error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
-exports.resetPassword = async (req, res) => {
+
+exports.resetPassword = async (req, res, next) => {
   const { password } = req.body;
   const { token } = req.params;
 
@@ -77,7 +124,7 @@ exports.resetPassword = async (req, res) => {
       resetPasswordExpires: { $gt: Date.now() },
     });
 
-    if (!user) return res.status(400).json({ message: "Invalid Token" });
+    if (!user) throw { status: 400, message: "Invalid or expired token" };
 
     user.password = await bcrypt.hash(password, 10);
     user.resetPasswordToken = undefined;
@@ -86,16 +133,16 @@ exports.resetPassword = async (req, res) => {
     await user.save();
     res.json({ message: "Password has been reset" });
   } catch (error) {
-    res.status(500).json({ message: "Error at changing password" });
+    next(error);
   }
 };
-exports.deleteUser = async (req, res) => {
-  try {
-    const deletedUser= await User.findByIdAndDelete(req.params.id);
-    if(!deletedUser) return res.status(404).json({ message: 'Could not find user' });
-    res.status(200).json(deletedUser);
 
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting user', error: err });
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) throw { status: 404, message: "User not found" };
+    res.status(200).json(deletedUser);
+  } catch (error) {
+    next(error);
   }
 };
