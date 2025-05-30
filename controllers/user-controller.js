@@ -146,3 +146,27 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getUserStats = async (req, res, next) => {
+  try {
+    const total = await User.countDocuments();
+
+    const roles = await User.aggregate([
+      { $group: { _id: "$role", count: { $sum: 1 } } },
+    ]);
+
+    const monthly = await User.aggregate([
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({ total, roles, monthly });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -23,8 +23,22 @@ exports.createGrade = async (req, res, next) => {
 
 exports.getGradesByStudent = async (req, res, next) => {
   try {
-    const grades = await Grade.find({ studentId: req.user.id }).populate("courseId", "title category");
-    res.json(grades);
+    const { page = 1, limit = 5 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Grade.countDocuments({ studentId: req.user.id });
+
+    const grades = await Grade.find({ studentId: req.user.id })
+      .populate("courseId", "title category")
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      results: grades,
+    });
   } catch (err) {
     next(err);
   }

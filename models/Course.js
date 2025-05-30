@@ -7,8 +7,8 @@ const courseSchema = new Schema(
     description: { type: String, required: true, unique: true },
     category: { type: String, required: true },
     price: { type: Number, required: true },
-    maxStudents: { type: Number, required: true },
-    teacherId: { type: Types.ObjectId, ref: "User", required: true }, 
+    maxStudents: {type: Number,default: 5, min: 1,},
+    teacherId: { type: Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
 );
