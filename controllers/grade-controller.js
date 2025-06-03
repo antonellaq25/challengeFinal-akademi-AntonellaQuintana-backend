@@ -16,7 +16,12 @@ exports.createGrade = async (req, res, next) => {
 
     const grade = await Grade.create({ studentId, courseId, score, feedback });
     res.status(201).json(grade);
+
   } catch (err) {
+    if (err.code === 11000) {
+      err.message = "This student has already been graded for this course";
+      err.statusCode = 400;
+    }
     next(err);
   }
 };
