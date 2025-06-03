@@ -94,9 +94,9 @@ exports.updateCourse = async (req, res, next) => {
       error.status = 404;
       throw error;
     }
-
     if (
-      course.teacherId.toString() !== req.user._id.toString() &&
+      
+      course.teacherId.toString() !== req.user.id.toString() &&
       req.user.role !== "superadmin"
     ) {
       const error = new Error("Not authorized to modify this course");
