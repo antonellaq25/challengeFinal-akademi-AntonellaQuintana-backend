@@ -53,7 +53,7 @@ exports.createEnrollment = async (req, res, next) => {
 
     const enrollment = new Enrollment({
       course: courseId,
-      student: userId,
+      student: studentId,
     });
 
     await enrollment.save();
