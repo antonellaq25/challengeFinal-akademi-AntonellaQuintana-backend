@@ -21,7 +21,6 @@ router.use(role(["superadmin"]));
 router.post("/new",validateCreateUser, authController.register);
 router.get("/", userController.getUsers);
 router.get('/stats', userController.getUserStats);
-router.get("/filter", userController.getUsersByFilter);
 router.get("/:id", userController.getUserById);
 router.put("/:id", validateUpdateUser,userController.updateUser);
 router.delete("/:id",userController.deleteUser);

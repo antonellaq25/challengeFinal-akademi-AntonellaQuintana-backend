@@ -6,30 +6,8 @@ const Enrollment = require("../models/Enrollment");
 const Grade = require("../models/Grade");
 const Course = require("../models/Course");
 
+
 exports.getUsers = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 5 } = req.query;
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const total = await User.countDocuments({});
-    const users = await User.find({}).skip(skip).limit(parseInt(limit));
-
-    if (!users) {
-      throw { status: 404, message: "Users not found" };
-    }
-    res.status(200).json({
-      total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      results: users,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.getUsersByFilter = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, name, email, role } = req.query;
 
@@ -167,8 +145,8 @@ exports.deleteUser = async (req, res, next) => {
       await Course.deleteMany({ teacherId: userId });
     }
     if (user.role === "student") {
-      await Grade.deleteMany({ student: userId });
-      await Grade.deleteMany({ student: null });
+      await Grade.deleteMany({ studentId: userId });
+      await Grade.deleteMany({ studentId: null });
       await Enrollment.deleteMany({ student: userId });
     }
     const deletedUser = await User.findByIdAndDelete(userId);
@@ -178,7 +156,7 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
-
+  
 exports.getUserStats = async (req, res, next) => {
   try {
     const total = await User.countDocuments();
