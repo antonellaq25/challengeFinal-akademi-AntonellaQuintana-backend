@@ -2,6 +2,9 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
+const Enrollment = require("../models/Enrollment");
+const Grade = require("../models/Grade");
+const Course = require("../models/Course");
 
 exports.getUsers = async (req, res, next) => {
   try {
@@ -139,9 +142,38 @@ exports.resetPassword = async (req, res, next) => {
 
 exports.deleteUser = async (req, res, next) => {
   try {
-    const deletedUser = await User.findByIdAndDelete(req.params.id);
-    if (!deletedUser) throw { status: 404, message: "User not found" };
-    res.status(200).json(deletedUser);
+    const userId = req.params.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    if (user.role === "teacher") {
+      const teacherCourses = await Course.find({ teacherId: userId });
+
+      for (const course of teacherCourses) {
+        const hasStudents = await Enrollment.exists({ course: course._id });
+        if (hasStudents) {
+          const error = new Error(
+            "Cannot delete teacher: they have courses with enrolled students."
+          );
+          error.status = 400;
+          throw error;
+        }
+      }
+      await Course.deleteMany({ teacherId: userId });
+    }
+    if (user.role === "student") {
+      await Grade.deleteMany({ student: userId });
+      await Grade.deleteMany({ student: null });
+      await Enrollment.deleteMany({ student: userId });
+    }
+    const deletedUser = await User.findByIdAndDelete(userId);
+    res.status(200).json({ message: "User and related data deleted", deletedUser });
+
   } catch (error) {
     next(error);
   }

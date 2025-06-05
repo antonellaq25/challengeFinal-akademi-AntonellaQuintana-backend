@@ -1,9 +1,9 @@
 const Course = require("../models/Course");
+const Enrollment = require("../models/Enrollment");
 
 exports.getCourses = async (req, res, next) => {
   try {
     const { page = 1, limit = 5 } = req.query;
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const total = await Course.countDocuments({});
@@ -95,7 +95,7 @@ exports.updateCourse = async (req, res, next) => {
       throw error;
     }
     if (
-      
+
       course.teacherId.toString() !== req.user.id.toString() &&
       req.user.role !== "superadmin"
     ) {
@@ -126,6 +126,13 @@ exports.deleteCourse = async (req, res, next) => {
     if (!course) {
       const error = new Error("Course not found");
       error.status = 404;
+      throw error;
+    }
+
+    const hasEnrollments = await Enrollment.exists({ course: course._id });
+    if (hasEnrollments) {
+      const error = new Error("Cannot delete course with enrolled students");
+      error.status = 400;
       throw error;
     }
 
