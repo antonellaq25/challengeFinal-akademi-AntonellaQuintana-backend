@@ -4,7 +4,7 @@ const Course = require("../models/Course");
 exports.createGrade = async (req, res, next) => {
   try {
     const { studentId, courseId, score, feedback } = req.body;
-
+    console.log("courseID", courseId)
     const course = await Course.findById(courseId);
     if (!course) throw new Error("Course not found");
 
@@ -93,10 +93,25 @@ exports.updateGrade = async (req, res, next) => {
     const { id } = req.params;
     const { score, feedback } = req.body;
 
-    const grade = await Grade.findById(id).populate("courseId");
+    const grade = await Grade.findById(id).populate({
+      path: "courseId",
+      populate: { path: "teacherId", select: "_id" },
+    });
+
+    console.log("grade.courseId.teacherId:", grade.courseId?.teacherId);
+    console.log("req.user._id:", req.user.id);
+
     if (!grade) throw new Error("Grade not found");
 
-    if (grade.courseId.teacherId.toString() !== req.user._id.toString()) {
+    if (!grade.courseId || !grade.courseId.teacherId) {
+      const err = new Error("Course or teacher not found for this grade");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (
+      grade.courseId?.teacherId?._id?.toString() !== req.user.id.toString()
+    ) {
       const err = new Error("Not authorized to update this grade");
       err.statusCode = 403;
       throw err;
@@ -112,6 +127,8 @@ exports.updateGrade = async (req, res, next) => {
     next(err);
   }
 };
+
+
 
 exports.deleteGrade = async (req, res, next) => {
   try {

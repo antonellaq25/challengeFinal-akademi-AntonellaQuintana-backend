@@ -1,42 +1,23 @@
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
 
+
 exports.getCourses = async (req, res, next) => {
   try {
-    const { page = 1, limit = 5 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const total = await Course.countDocuments({});
-    const courses = await Course.find({})
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    res.status(200).json({
-      total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      results: courses,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching courses", error: err.message });
-  }
-};
-exports.getCoursesByFilter = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, category, active, title } = req.query;
+    const { page = 1, limit = 5, category, active, title } = req.query;
     const filter = {};
 
-    if (category) filter.category = category;
+    if (category) filter.category = { $regex: category, $options: "i" }
     if (active !== undefined) filter.active = active === "true";
     if (title) filter.title = { $regex: title, $options: "i" };
 
     const total = await Course.countDocuments(filter);
     const courses = await Course.find(filter)
       .skip((page - 1) * limit)
-      .limit(Number(limit))
+      .limit(parseInt(limit))
       .sort({ createdAt: -1 });
 
-    res.json({ total, page: Number(page), courses });
+    res.json({ total, page: Number(page), totalPages: Math.ceil(total / limit), courses });
   } catch (err) {
     next(err);
   }

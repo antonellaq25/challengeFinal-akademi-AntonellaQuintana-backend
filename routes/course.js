@@ -12,7 +12,6 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 router.use(authMiddleware);
 
 router.get("/", roleMiddleware(["student", "superadmin"]), courseController.getCourses);
-router.get("/filter", roleMiddleware(["student", "superadmin"]),courseController.getCoursesByFilter);
 router.get("/my-courses", roleMiddleware(["teacher"]), courseController.getMyCourses);
 router.get("/:id", courseController.getCourseById);
 router.post("/", roleMiddleware(["teacher"]), validateCreateCourse,courseController.createCourse);

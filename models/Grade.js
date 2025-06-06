@@ -3,7 +3,7 @@ const { Schema, Types } = mongoose;
 
 const gradeSchema = new Schema(
   {
-    studentId: { type: Types.ObjectId, ref: "User", required: true,  unique: true },
+    studentId: { type: Types.ObjectId, ref: "User", required: true},
     courseId: { type: Types.ObjectId, ref: "Course", required: true },
     score: { type: Number, required: true, min: 0, max: 100 },
     feedback: { type: String },
