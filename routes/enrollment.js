@@ -10,7 +10,6 @@ router.get("/student", roleMiddleware(["student"]), enrollmentController.getEnro
 router.post("/", roleMiddleware(["student"]), enrollmentController.createEnrollment);
 router.delete("/:id", roleMiddleware(["student"]), enrollmentController.deleteEnrollment);
 
-
 router.get("/course/:courseId", roleMiddleware(["teacher","superadmin"]), enrollmentController.getEnrollmentsByCourse);
 
 module.exports = router;

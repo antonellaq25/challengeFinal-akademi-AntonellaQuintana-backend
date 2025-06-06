@@ -6,7 +6,6 @@ const Enrollment = require("../models/Enrollment");
 const Grade = require("../models/Grade");
 const Course = require("../models/Course");
 
-
 exports.getUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, name, email, role } = req.query;
@@ -82,7 +81,8 @@ exports.requestPasswordReset = async (req, res, next) => {
     user.resetPasswordExpires = Date.now() + 1000 * 60 * 30; 
     await user.save();
 
-    const link = `http://localhost:5173/reset-password/${token}`;
+    const link = `${process.env.FRONT_URL}/reset-password/${token}`;
+
     await sendEmail(
       email,
       "Reset password",

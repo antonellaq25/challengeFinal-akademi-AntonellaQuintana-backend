@@ -4,8 +4,9 @@ const Course = require("../models/Course");
 exports.createGrade = async (req, res, next) => {
   try {
     const { studentId, courseId, score, feedback } = req.body;
-    console.log("courseID", courseId)
+
     const course = await Course.findById(courseId);
+
     if (!course) throw new Error("Course not found");
 
     if (course.teacherId.toString() !== req.user.id.toString()) {
@@ -73,6 +74,7 @@ exports.getGradesByCourse = async (req, res, next) => {
     const { courseId } = req.params;
 
     const course = await Course.findById(courseId);
+
     if (!course) throw new Error("Course not found");
 
     if (course.teacherId.toString() !== req.user.id.toString()) {
@@ -127,8 +129,6 @@ exports.updateGrade = async (req, res, next) => {
     next(err);
   }
 };
-
-
 
 exports.deleteGrade = async (req, res, next) => {
   try {

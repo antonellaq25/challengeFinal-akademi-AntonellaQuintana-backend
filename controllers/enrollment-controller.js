@@ -80,7 +80,6 @@ exports.deleteEnrollment = async (req, res, next) => {
 
 exports.getEnrollmentsByCourse = async (req, res, next) => {
   try {
-    const teacherId = req.user.id;
     const courseId = req.params.courseId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -90,7 +89,7 @@ exports.getEnrollmentsByCourse = async (req, res, next) => {
     if (!course) {
       throw { statusCode: 404, message: "Course not found" };
     }
-    console.log(req.user)
+
     if ((course.teacherId.toString() !== req.user.id) && req.user.role !== "superadmin") {
       throw { statusCode: 403, message: "Access denied: You are not the owner of this course" };
     }
@@ -99,7 +98,6 @@ exports.getEnrollmentsByCourse = async (req, res, next) => {
       .populate("student", "name email")
       .skip(skip)
       .limit(limit);
-
 
     res.json({
       total,
